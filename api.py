@@ -8,7 +8,8 @@ urls = ["/aip2pgaming/api/rl/gw.php",
 
 id = '3672'
 key = '6f7504789dda4c53374b'
-teamId = '1459'
+# teamId = '1459'
+# teamId2 = '1464'
 
 headers = {
   'userId': id,
@@ -119,8 +120,8 @@ def get_my_team() -> dict:
     return res 
 
 
-# create_team("TESTRF")
-# add_team_member(teamId, id)
+# create_team("TESTRF2")
+# add_team_member(1464, id)
 # get_location(teamId)
 # get_runs(teamId, 1)
 # reset_team(teamId, "5712768807")
