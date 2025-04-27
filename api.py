@@ -3,7 +3,8 @@ import ast
 
 urls = ["/aip2pgaming/api/rl/gw.php", 
         "/aip2pgaming/api/rl/score.php",
-        "/aip2pgaming/api/index.php"]
+        "/aip2pgaming/api/index.php",
+        "/aip2pgaming/api/rl/reset.php"]
 
 id = '3672'
 key = '6f7504789dda4c53374b'
@@ -45,7 +46,7 @@ def get_location(teamId: str) -> dict:
     res = make_get_request(payload, urls[0])
     print(res)
     assert res['code'] == "OK", 'get_location'
-    return res
+    return res["world"], res["state"]
 
 
 def enter_world(teamId: str, worldId: str) -> dict:
@@ -53,20 +54,28 @@ def enter_world(teamId: str, worldId: str) -> dict:
     res = make_post_request(payload, urls[0])
     print(res)
     assert res['code'] == "OK", 'enter_world'
-    return res
+    return res['state']
 
 def make_move(teamId: str, move: str, worldId: int) -> dict:
-    payload = f"type=move&teamId={teamId}&worldID={worldId}&move={move}"
+    payload = f"type=move&teamId={teamId}&move={move}&worldId={worldId}"
     res = make_post_request(payload, urls[0])
     print(res)
     assert res['code'] == "OK", "make_move"
-    return res
+    return res["reward"], res["newState"]
 
 def get_score(teamId: str) -> dict:
     payload = f"type=score&teamId={teamId}"
     res = make_get_request(payload, urls[1])
     print(res)
     assert res['code'] == "OK", 'get_score'
+    return res
+
+
+def reset_team(teamId: str, otp: str):
+    payload = f"teamId={teamId}&otp={otp}"
+    res = make_get_request(payload, urls[3])
+    print(res)
+    assert res['code'] == "OK", "reset_team"
     return res
 
 
@@ -112,3 +121,10 @@ def get_my_team() -> dict:
 
 # create_team("TESTRF")
 # add_team_member(teamId, id)
+# get_location(teamId)
+# get_runs(teamId, 10)
+# reset_team(teamId, "5712768807")
+# get_location(teamId)
+# make_move(teamId, "N", "1")
+# enter_world(teamId, "1")
+# make_move(teamId, "S", "1")
