@@ -70,7 +70,7 @@ def calculate_reward(reward, prev_reward, steps, state):
     direction_bonus = 0.1 if reward_gradient > 0 else 0
     
     # Penalty for revisiting traps
-    trap_penalty = -5 if state in visited_traps else 0
+    trap_penalty = -30 if state in visited_traps else 0
     
     return reward + direction_bonus + step_penalty + trap_penalty
 
