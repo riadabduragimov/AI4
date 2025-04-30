@@ -7,7 +7,7 @@ import math
 # Parameters
 GRID_SIZE = 40
 ACTIONS = ["N", "S", "E", "W"]
-teamId = '1459'
+teamId = '1464'
 otp = '5712768807' 
 episodes = 5       
 max_steps = 5000

@@ -2,12 +2,12 @@ import random
 import pickle
 import time
 import math
-from api import enter_world, make_move, get_score, reset_team, get_location
+from api import enter_world, make_move, get_score, reset_team
 
 # Parameters
 GRID_SIZE = 40
 ACTIONS = ["N", "S", "E", "W"]
-teamId = '1459' # TESTRF2
+teamId = '1464' # TESTRF2
 otp = '5712768807' 
 
 # Training parameters
@@ -15,7 +15,7 @@ episodes = 5
 max_steps = 5000
 alpha = 0.2         # Learning rate
 gamma = 0.95        # Discount factor
-goal_reward = 100   # Expected reward when reaching goal
+goal_reward = 5   # Expected reward when reaching goal
 
 # Exploration parameters (Boltzmann)
 initial_temperature = 1.0
@@ -26,6 +26,9 @@ temperature = initial_temperature
 # Initialize Q-table with small random values to break symmetry
 Q = {(x, y): {a: random.uniform(-0.1, 0.1) for a in ACTIONS} 
      for x in range(GRID_SIZE) for y in range(GRID_SIZE)}
+
+# Initialize visited traps set
+visited_traps = set()
 
 def choose_action(state):
     """
@@ -51,12 +54,13 @@ def choose_action(state):
     # Choose action based on probabilities
     return random.choices(ACTIONS, weights=[probabilities[a] for a in ACTIONS])[0]
 
-def calculate_reward(reward, prev_reward, steps):
+def calculate_reward(reward, prev_reward, steps, state):
     """
     Calculate modified reward with:
     - Reward gradient bonus (if improving)
     - Small step penalty
     - Large goal reward
+    - Penalty for revisiting traps
     """
     # Basic reward components
     reward_gradient = reward - prev_reward
@@ -65,7 +69,10 @@ def calculate_reward(reward, prev_reward, steps):
     # Bonus for moving toward goal
     direction_bonus = 0.1 if reward_gradient > 0 else 0
     
-    return reward + direction_bonus + step_penalty
+    # Penalty for revisiting traps
+    trap_penalty = -30 if state in visited_traps else 0
+    
+    return reward + direction_bonus + step_penalty + trap_penalty
 
 def update_q_values(state, action, next_state, reward):
     """
@@ -100,7 +107,7 @@ def train_q_learning():
         
         # Reset environment
         reset_team(teamId, otp)
-        world_id = 4
+        world_id = 3
         
         try:
             start = enter_world(teamId, str(world_id))
@@ -124,7 +131,7 @@ def train_q_learning():
                 next_state = (new_x, new_y)
                 
                 # Calculate modified reward
-                modified_reward = calculate_reward(reward, prev_reward, step)
+                modified_reward = calculate_reward(reward, prev_reward, step, state)
                 total_score += reward
                 
                 # Update Q-values
@@ -139,6 +146,10 @@ def train_q_learning():
                 # Update state
                 prev_reward = reward
                 state = next_state
+
+                # Store visited trap state
+                if reward < 0:  # Assume negative reward indicates a trap
+                    visited_traps.add(state)
                 
             except Exception as e:
                 print(f"Move failed: {e}")
@@ -160,7 +171,7 @@ def train_q_learning():
         # Save best Q-table
         if total_score > best_score:
             best_score = total_score
-            save_q_table("best_q_table2.pkl")
+            save_q_table("best_qexp_table2.pkl")
             print("New best Q-table saved!")
         
         time.sleep(1)  # Rate limiting
@@ -168,31 +179,24 @@ def train_q_learning():
     print("\nTraining complete.")
     return training_stats
 
-def save_q_table(path="q_table.pkl"):
+def save_q_table(path="qexp_table.pkl"):
     with open(path, "wb") as f:
         pickle.dump(Q, f)
 
-def load_q_table(path="q_table.pkl"):
+def load_q_table(path="qexp_table.pkl"):
     global Q
     with open(path, "rb") as f:
         Q = pickle.load(f)
     print(f"Q-table loaded from {path}")
+    print(Q)
 
 
 if __name__ == "__main__":
     # Train the agent
-    
+    # load_q_table("best_q_table2.pkl")
+
     stats = train_q_learning()
     
     # Save final Q-table
     save_q_table()
     
-    # get_location(teamId)
-    # Plot training progress
-    # plot_training_stats(stats)
-    
-    # Print some learned policy examples
-    # print("\nSample learned policy:")
-    # for state in random.sample(list(Q.keys()), min(5, len(Q))):
-    #     best_action = max(Q[state].items(), key=lambda x: x[1])[0]
-    #     print(f"State {state}: Best action = {best_action} (Q-value = {Q[state][best_action]:.2f})")
