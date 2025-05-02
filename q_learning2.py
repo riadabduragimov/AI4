@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, defaultdict
 import random
 import numpy as np
 import pickle
@@ -7,7 +7,7 @@ import api
 from datetime import datetime
 
 teamId = "1459"
-worldId = "2"
+worldId = "4"
 otp = "5712768807"
 
 class PersistentQLearner:
@@ -63,7 +63,7 @@ class PersistentQLearner:
         history = {
             'episode_rewards': self.episode_rewards,
             'episode_steps': self.episode_steps,
-            'best_reward': self.best_reward,
+            'best_reward': self.best_reward, 
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         with open(self.history_file, 'wb') as f:
@@ -83,22 +83,40 @@ class PersistentQLearner:
         else:
             print("No existing training history found")
 
-    def boltzmann_action(self, state):
-        q_values = self.q_table[state[0], state[1]]
-        
-        # Subtract max for numerical stability
-        max_q = np.max(q_values)
-        exp_q = np.exp((q_values - max_q) / self.temperature)
-        probabilities = exp_q / np.sum(exp_q)
-        
-        # Sample action from the probability distribution
-        return np.random.choice(range(self.n_actions), p=probabilities)
+    def predict_next_state(self, state, action):
+        """Predict next state based on current state and action."""
+        x, y = state
+        if action == 0:   # 'N'
+            return (x, min(y + 1, self.grid_size - 1))
+        elif action == 1:  # 'E'
+            return (min(x + 1, self.grid_size - 1), y)  
+        elif action == 2:  # 'W'
+            return (max(x - 1, 0), y)
+        elif action == 3:  # 'S'
+            return (x, max(y - 1, 0))
     
-    def get_action(self, state):
-        """Epsilon-greedy action selection"""
+    def get_action(self, state, state_visits):
+        """Epsilon-greedy action selection with visit-aware filtering."""
+        possible_actions = list(range(self.n_actions))
+
+        # Filter out actions leading to states visited ≥2 times
+        valid_actions = []
+        for action in possible_actions:
+            next_state = self.predict_next_state(state, action)
+            if state_visits.get(next_state, 0) < 2:
+                valid_actions.append(action)
+
+        # Fallback: if all next states are over-visited, allow any action
+        if not valid_actions:
+            valid_actions = possible_actions
+
+        # Epsilon-greedy selection from valid actions only
         if random.random() < self.epsilon:
-            return random.randint(0, self.n_actions-1)  # Explore
-        return np.argmax(self.q_table[state[0], state[1]])  # Exploit
+            return random.choice(valid_actions)  # Explore
+        else:
+            # Exploit: choose best valid action based on Q-values
+            q_values = [self.q_table[state[0], state[1], a] for a in valid_actions]
+            return valid_actions[np.argmax(q_values)]
 
     
     def remember(self, state, action, reward, next_state, done):
@@ -134,31 +152,28 @@ class PersistentQLearner:
             total_reward = 0
             steps = 0
             done = False
+            state_visits = defaultdict(int)
+            state_visits[current_state] += 1
             
             while not done and steps < max_steps:
-                try:
-                    action = self.get_action(current_state)
-                    action_str = self.actions[action]
-
-                    # Get new state and reward from environment
-                    new_state, reward, done = api.make_move2(teamId, action_str, worldId)
-
-                    if reward <= -100:
-                        current_state, action, reward, new_state, done = self.memory.pop()
-                        reward = -1000
-                        self.remember(current_state, action, reward, new_state, done)
-                        api.make_move(teamId, worldId)
-                        break
-
-                    # Store experience
+                action = self.get_action(current_state, state_visits)
+                action_str = self.actions[action]
+                # Get new state and reward from environment
+                new_state, reward, done = api.make_move2(teamId, action_str, worldId)
+                state_visits[new_state] += 1
+                
+                if reward <= -100:
+                    current_state, action, reward, new_state, done = self.memory.pop()
+                    reward = -1000
                     self.remember(current_state, action, reward, new_state, done)
-                    total_reward += reward
-                    steps += 1
-                    previous_state = current_state
-                    current_state = new_state
-                except:
-                    print("Trap state Found rentering the world")
                     break
+                # Store experience
+                self.remember(current_state, action, reward, new_state, done)
+                total_reward += reward
+                steps += 1
+                previous_state = current_state
+                current_state = new_state
+                
             
             if done:
                 print("TARGET FOUND AT:", previous_state, total_reward)
@@ -173,7 +188,7 @@ class PersistentQLearner:
             self.episode_rewards.append(total_reward)
             self.episode_steps.append(steps)
             
-            if total_reward >= self.best_reward:
+            if total_reward > self.best_reward:
                 self.best_reward = total_reward
                 self.save_qtable()  # Save immediately when new best is found
                 self.save_training_history()
@@ -181,7 +196,7 @@ class PersistentQLearner:
                 with open(best_q_file, 'wb') as f:
                     pickle.dump(self.q_table, f)
                 print(f"New best reward! Saved Q-table to {best_q_file}")
-                
+
                 continue
             
             # Save progress periodically
@@ -241,7 +256,7 @@ class PersistentQLearner:
 if __name__ == "__main__":
     agent = PersistentQLearner()
     
-    agent.train(episodes=10, max_steps=500, save_interval=1)
+    agent.train(episodes=10, max_steps=1000, save_interval=1)
     
     # optimal_path = agent.get_optimal_path("best_qtable_world2_reward500.pkl")
     # print(f"Optimal path length: {len(optimal_path)} steps")
