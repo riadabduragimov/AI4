@@ -30,6 +30,11 @@ class PersistentQLearner:
         self.epsilon = 1.0  
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
+
+        # Boltzmann (Softmax) parameters
+        self.temperature = 1.0
+        self.temp_min = 0.1
+        self.temp_decay = 0.995
         
         # Experience replay
         self.memory = deque(maxlen=10000)
@@ -130,6 +135,16 @@ class PersistentQLearner:
                 q_values = [self.q_table[state[0], state[1], a] for a in valid_actions]
                 return valid_actions[np.argmax(q_values)]
 
+    def boltzmann_action(self, state):
+        q_values = self.q_table[state[0], state[1]]
+        
+        # Subtract max for numerical stability
+        max_q = np.max(q_values)
+        exp_q = np.exp((q_values - max_q) / self.temperature)
+        probabilities = exp_q / np.sum(exp_q)
+        
+        # Sample action from the probability distribution
+        return np.random.choice(range(self.n_actions), p=probabilities)
     
     def remember(self, state, action, reward, next_state, done):
         if self.goal_coords and not done:
