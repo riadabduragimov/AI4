@@ -8,7 +8,8 @@ urls = ["/aip2pgaming/api/rl/gw.php",
 
 id = '3672'
 key = '6f7504789dda4c53374b'
-teamId = '1459'
+# teamId = '1459'
+# teamId2 = '1464'
 
 headers = {
   'userId': id,
@@ -22,6 +23,7 @@ def make_post_request(parameters: str, url: str) -> dict:
     conn.request("POST", url, parameters, headers)
     response = conn.getresponse()
     data = response.read().decode()
+    print(data)
     return ast.literal_eval(data)
 
 def make_get_request(parameters: str, url: str) -> dict:
@@ -119,12 +121,32 @@ def get_my_team() -> dict:
     return res 
 
 
-# create_team("TESTRF")
-# add_team_member(teamId, id)
-# get_location(teamId)
-# get_runs(teamId, 10)
-# reset_team(teamId, "5712768807")
-# get_location(teamId)
-# make_move(teamId, "N", "1")
-# enter_world(teamId, "1")
-# make_move(teamId, "S", "1")
+
+def make_post_request2(parameters: str, url: str) -> dict:
+    conn = http.client.HTTPSConnection("www.notexponential.com")
+    conn.request("POST", url, parameters, headers)
+    response = conn.getresponse()
+    data = response.read().decode()
+    data = data.replace("null", "-1")
+    print(data)
+    return ast.literal_eval(data)
+
+
+def make_move2(teamId: str, move: str, worldId: int) -> dict:
+    payload = f"type=move&teamId={teamId}&move={move}&worldId={worldId}"
+    res = make_post_request2(payload, urls[0])
+    
+    if res['reward'] >= 100:
+        return (-1, -1), res['reward'], True
+    if res['reward'] <= -100:
+        return (-1, -1), res['reward'], False
+    x = int(res["newState"]["x"])
+    y = int(res["newState"]["y"])
+    return (x, y), res['reward'], False
+
+
+# get_location("1459")
+# get_runs(teamId, 1)
+reset_team("1459", "5712768807")
+# enter_world("1459", "1")
+# make_move(1459, "E", "1")
