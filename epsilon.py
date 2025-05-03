@@ -7,7 +7,7 @@ import api
 from datetime import datetime
 
 teamId = "1459"
-worldId = "8"
+worldId = "9"
 otp = "5712768807"
 
 class PersistentQLearner:
@@ -276,9 +276,9 @@ class PersistentQLearner:
 
 # Usage example
 if __name__ == "__main__":
-    agent = PersistentQLearner(gc=(17, 11))
+    agent = PersistentQLearner()
     
-    agent.train(episodes=20, max_steps=1000, save_interval=1)
+    agent.train(episodes=40, max_steps=1000, save_interval=1)
     
     # optimal_path = agent.get_optimal_path("best_qtable_world2_reward2030.pkl")
     # print(f"Optimal path length: {len(optimal_path)} steps")
