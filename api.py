@@ -145,7 +145,8 @@ def make_move2(teamId: str, move: str, worldId: int) -> dict:
     return (x, y), res['reward'], False
 
 
-# get_location(teamId)
+# get_location("1459")
 # get_runs(teamId, 1)
 # reset_team("1459", "5712768807")
-# enter_world("1459", "2")
+# enter_world("1459", "1")
+# make_move(1459, "E", "1")
