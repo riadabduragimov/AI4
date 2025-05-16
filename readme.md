@@ -31,7 +31,6 @@
    - Initializes training & loads previous performance.
    - Iteratively selects **actions**, **collects rewards**, and **updates the Q-table**.
    - Saves progress periodically and upon achieving a new best reward.
-   - Uses `api.make_move2()` for interaction, suggesting this is an external environment.
 
 ---
 
@@ -47,10 +46,7 @@ Run the script to train the AI agent:
 python epsilon.py
 ```
 
-Modify training parameters as needed:
-```python
-agent.train(episodes=1000, max_steps=1000, save_interval=100)
-```
+Modify training parameters as needed!
 
 ## Files
 - `qtable_worldX.pkl`: Stores trained Q-values.
